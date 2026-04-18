@@ -1,0 +1,199 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Camel Processor Stack'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    Description: Environment name
+
+  SqsQueueName:
+    Type: String
+    Default: event-processor-queue
+    Description: Name of the SQS queue
+
+  DynamoDbTableName:
+    Type: String
+    Default: event-messages
+    Description: Name of the DynamoDB table
+
+  EventBusName:
+    Type: String
+    Default: default
+    Description: EventBridge bus name
+
+Resources:
+  EventProcessorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${SqsQueueName}-${Environment}"
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${SqsQueueName}-dlq-${Environment}"
+      MessageRetentionPeriod: 1209600
+
+  EventMessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${DynamoDbTableName}-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: message_id
+          AttributeType: S
+        - AttributeName: event_type
+          AttributeType: S
+        - AttributeName: order_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: N
+      KeySchema:
+        - AttributeName: message_id
+          KeyType: HASH
+        - AttributeName: event_type
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: order_id_index
+          KeySchema:
+            - AttributeName: order_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: status_created_at_index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+
+  CustomEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${EventBusName}-${Environment}"
+
+  CamelAppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "camel-app-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SqsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ChangeMessageVisibility
+                Resource: !GetAtt EventProcessorQueue.Arn
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt DeadLetterQueue.Arn
+        - PolicyName: DynamoDbAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt EventMessagesTable.Arn
+                  - !Sub "${EventMessagesTable.Arn}/index/*"
+        - PolicyName: EventBridgeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource: !GetAtt CustomEventBus.Arn
+
+  DeadLetterQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "dlq-messages-alarm-${Environment}"
+      AlarmDescription: "Alert when messages are sent to DLQ"
+      Namespace: AWS/SQS
+      MetricName: NumberOfMessagesSent
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt DeadLetterQueue.QueueName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  SqsQueueUrl:
+    Description: SQS Queue URL
+    Value: !Ref EventProcessorQueue
+    Export:
+      Name: !Sub "${Environment}-sqs-queue-url"
+
+  SqsQueueArn:
+    Description: SQS Queue ARN
+    Value: !GetAtt EventProcessorQueue.Arn
+    Export:
+      Name: !Sub "${Environment}-sqs-queue-arn"
+
+  DeadLetterQueueArn:
+    Description: Dead Letter Queue ARN
+    Value: !GetAtt DeadLetterQueue.Arn
+
+  DynamoDbTableName:
+    Description: DynamoDB Table Name
+    Value: !Ref EventMessagesTable
+    Export:
+      Name: !Sub "${Environment}-dynamodb-table-name"
+
+  EventBusName:
+    Description: EventBridge Bus Name
+    Value: !Ref CustomEventBus
+    Export:
+      Name: !Sub "${Environment}-event-bus-name"
+
+  EventBusArn:
+    Description: EventBridge Bus ARN
+    Value: !GetAtt CustomEventBus.Arn
+    Export:
+      Name: !Sub "${Environment}-event-bus-arn"
+
+  CamelAppRoleArn:
+    Description: IAM Role ARN for Camel application
+    Value: !GetAtt CamelAppRole.Arn

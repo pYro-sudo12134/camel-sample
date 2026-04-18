@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  localstack-camel:
+    image: localstack/localstack:4.12
+    container_name: localstack-camel
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - SERVICES=sqs,dynamodb,events,ses,lambda,cloudformation,cloudwatch,kms,iam
+      - AWS_DEFAULT_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LS_LOG=debug
+    volumes:
+      - "./localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./deploy-infra.sh:/etc/localstack/init/ready.d/deploy-infra.sh"
+      - "./template-app.yaml:/etc/localstack/init/ready.d/template-app.yaml"
+      - "./template-lambda.yaml:/etc/localstack/init/ready.d/template-lambda.yaml"
+    networks:
+      - localstack-net
+
+  camel-app:
+    build: .
+    container_name: camel-app
+    depends_on:
+      - localstack-camel
+    env_file:
+      - .env.example
+    environment:
+      - QUARKUS_PROFILE=dev
+      - SQS_ENDPOINT_OVERRIDE=http://localstack-camel:4566
+      - DYNAMODB_ENDPOINT_OVERRIDE=http://localstack-camel:4566
+      - EVENTBRIDGE_ENDPOINT_OVERRIDE=http://localstack-camel:4566
+    ports:
+      - "8100:8080"
+    networks:
+      - localstack-net
+
+networks:
+  localstack-net:
+    driver: bridge
