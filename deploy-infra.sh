@@ -4,7 +4,7 @@ ENDPOINT_URL=${LOCALSTACK_ENDPOINT:-"http://localhost:4566"}
 REGION="us-east-1"
 ENVIRONMENT=${ENVIRONMENT:-"dev"}
 
-echo "Deploying infrastructure to LocalStack..."
+echo "Deploying infrastructure to LocalStack"
 echo "Endpoint: $ENDPOINT_URL"
 echo "Environment: $ENVIRONMENT"
 
@@ -19,7 +19,7 @@ aws --endpoint-url=$ENDPOINT_URL cloudformation create-stack \
     --capabilities CAPABILITY_IAM \
     --region $REGION
 
-echo "Waiting for app stack to complete..."
+echo "Waiting for app stack to complete"
 aws --endpoint-url=$ENDPOINT_URL cloudformation wait stack-create-complete \
     --stack-name "camel-app-stack-$ENVIRONMENT" \
     --region $REGION
@@ -32,7 +32,7 @@ aws --endpoint-url=$ENDPOINT_URL cloudformation create-stack \
     --capabilities CAPABILITY_IAM \
     --region $REGION
 
-echo "Waiting for lambda stack to complete..."
+echo "Waiting for lambda stack to complete"
 aws --endpoint-url=$ENDPOINT_URL cloudformation wait stack-create-complete \
     --stack-name "lambda-stack-$ENVIRONMENT" \
     --region $REGION

@@ -8,12 +8,7 @@ COPY gradlew ./gradlew
 COPY src ./src
 COPY gradle.properties ./gradle.properties
 
-ENV QUARKUS_TEST_ENABLED=false
-ENV QUARKUS_TEST_CONTINUOUS_TESTING_ENABLED=false
-ENV TESTCONTAINERS_RYUK_DISABLED=true
-ENV SKIP_TESTS=true
-
-RUN ./gradlew quarkusBuild --no-daemon -x test -DskipTests=true -Dquarkus.test.enabled=false
+RUN ./gradlew quarkusBuild --no-daemon -x test
 
 FROM eclipse-temurin:21-jre
 
