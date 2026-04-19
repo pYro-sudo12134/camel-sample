@@ -132,7 +132,7 @@ sequenceDiagram
 - **Java 21**
 - **Quarkus 3.17.5** - фреймворк DI
 - **Apache Camel** - библиотека для маршрутизации
-- **AWS SDK** - библиотека для SQS, EventBridge, DynamoDB, Lambda, SES, KMS, IAM
+- **AWS SDK** - библиотека для SQS, EventBridge, DynamoDB, Lambda, SES, KMS, IAM, SNS
 - **Micrometer** - метрики
 - **Mutiny** - библиотека для реактивной парадигмы
 - **MapStruct, Lombok, Jackson** - утилитные библиотеки
