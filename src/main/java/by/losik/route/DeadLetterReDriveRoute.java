@@ -5,6 +5,7 @@ import by.losik.config.SqsConfig;
 import by.losik.dto.MetadataDto;
 import by.losik.dto.PayloadDto;
 import by.losik.dto.SqsMessageDto;
+import by.losik.exception.QueueMessageReceiveException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -69,7 +70,7 @@ public class DeadLetterReDriveRoute extends RouteBuilder {
                                     }))
                             .exceptionally(error -> {
                                 Log.error("Failed to receive messages from DLQ", error);
-                                return null;
+                                throw new QueueMessageReceiveException(error);
                             });
                 })
                 .onException(Exception.class)
