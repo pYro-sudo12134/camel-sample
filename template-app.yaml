@@ -25,6 +25,11 @@ Parameters:
     Default: default
     Description: EventBridge bus name
 
+  FailureAlertEmail:
+    Type: String
+    Default: admin@example.com
+    Description: Email address for DynamoDB failure alerts
+
 Resources:
   EventProcessorQueue:
     Type: AWS::SQS::Queue
@@ -170,6 +175,56 @@ Resources:
       Threshold: 1
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
+
+  DynamoDBFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "dynamodb-failure-queue-${Environment}"
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  DynamoDBFailureTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "dynamodb-failure-alerts-${Environment}"
+      DisplayName: !Sub "DynamoDB Failures ${Environment}"
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  DynamoDBFailureEmailSubscription:
+    Type: AWS::SNS::Subscription
+    DeletionPolicy: Retain
+    Properties:
+      Protocol: email
+      TopicArn: !Ref DynamoDBFailureTopic
+      Endpoint: !Ref FailureAlertEmail
+      FilterPolicy:
+        severity:
+          - "CRITICAL"
+          - "HIGH"
+          - "MEDIUM"
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DynamoDBFailureQueue.Arn
+
+  DynamoDBFailureQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "dynamodb-failure-queue-alarm-${Environment}"
+      AlarmDescription: "Alert when DynamoDB fails and messages appear in failure queue"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt DynamoDBFailureQueue.QueueName
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref DynamoDBFailureTopic
 
 Outputs:
   SqsQueueUrl:
