@@ -24,6 +24,12 @@ services:
       - "./template-lambda.yaml:/etc/localstack/init/ready.d/template-lambda.yaml"
     networks:
       - localstack-net
+    healthcheck:
+      test: [ "CMD", "awslocal", "cloudformation", "describe-stacks", "--stack-name", "camel-app-stack-dev", "--query", "Stacks[0].StackStatus", "--output", "text" ]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
 
   camel-app:
     build: .
