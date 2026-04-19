@@ -210,7 +210,7 @@ Resources:
   DynamoDBFailureQueueAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub "dynamodb-failure-queue-alarm-${Environment}"
+      AlarmName: !Sub "dynamodb-failure-alarm-${Environment}"
       AlarmDescription: "Alert when DynamoDB fails and messages appear in failure queue"
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
