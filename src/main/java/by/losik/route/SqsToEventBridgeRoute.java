@@ -57,7 +57,7 @@ public class SqsToEventBridgeRoute extends RouteBuilder {
                 appConfig.getMaxMessagePerPoll(),
                 appConfig.getWaitTimeSeconds()))
                 .routeId("sqs-to-eventbridge")
-                .to("micrometer:timer:sqs.receive?action=start")
+                .to("micrometer:timer:sqs.retry?action=start")
                 .log("Received: ${body}")
                 .unmarshal().json(SqsMessageDto.class)
                 .process(exchange -> {
@@ -81,7 +81,7 @@ public class SqsToEventBridgeRoute extends RouteBuilder {
                                         .map(Exception::getMessage)
                                         .orElse("Unknown error"))
                 )
-                .to("micrometer:timer:sqs.processing?action=stop");
+                .to("micrometer:timer:sqs.retry?action=stop");
     }
 
     private void sendToEventBridge(EventMessageEntity entity, SqsMessageDto sqsDto) {

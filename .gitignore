@@ -25,6 +25,7 @@ nb-configuration.xml
 *.rej
 
 .env
+**/.env
 
 /.quarkus/cli/plugins/
 .certs/

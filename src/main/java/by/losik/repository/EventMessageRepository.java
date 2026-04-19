@@ -185,4 +185,15 @@ public class EventMessageRepository {
                         .filter(entity -> entity.getRetryCount() != null && entity.getRetryCount() < maxRetryCount)
                         .collect(Collectors.toList()));
     }
+
+    @Measured(value = "dynamodb.find_messages_exceeding_retry_limit", tags = {"operation=select"})
+    public Uni<List<EventMessageEntity>> findMessagesExceedingRetryLimit(int maxRetryCount, int limit, int timeSpanSeconds) {
+        long timeRange = Instant.now().minusSeconds(timeSpanSeconds).toEpochMilli();
+        long now = Instant.now().toEpochMilli();
+
+        return findByStatusAndDateRange(EventStatus.FAILED, timeRange, now, limit)
+                .onItem().transform(entities -> entities.stream()
+                        .filter(entity -> entity.getRetryCount() != null && entity.getRetryCount() >= maxRetryCount)
+                        .collect(Collectors.toList()));
+    }
 }

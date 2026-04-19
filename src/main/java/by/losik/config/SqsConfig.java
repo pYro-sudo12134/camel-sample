@@ -14,25 +14,27 @@ import java.util.Optional;
 
 @ApplicationScoped
 public class SqsConfig {
-
     private final String region;
     private final Optional<String> endpointOverride;
     private final Optional<String> accessKey;
     private final Optional<String> secretKey;
     private final String queueName;
+    private final String dlqQueueName;
 
     public SqsConfig(
             @ConfigProperty(name = "sqs.region", defaultValue = "us-east-1") String region,
             @ConfigProperty(name = "sqs.endpoint.override") Optional<String> endpointOverride,
             @ConfigProperty(name = "sqs.access.key") Optional<String> accessKey,
             @ConfigProperty(name = "sqs.secret.key") Optional<String> secretKey,
-            @ConfigProperty(name = "sqs.queue.name") String queueName
+            @ConfigProperty(name = "sqs.queue.name") String queueName,
+            @ConfigProperty(name = "aws.sqs.dlq.queue-name") String dlqQueueName
     ) {
         this.region = region;
         this.endpointOverride = endpointOverride;
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.queueName = queueName;
+        this.dlqQueueName = dlqQueueName;
     }
 
     @Produces
@@ -60,5 +62,9 @@ public class SqsConfig {
 
     public String getQueueName() {
         return queueName;
+    }
+
+    public String getDlqQueueName() {
+        return dlqQueueName;
     }
 }

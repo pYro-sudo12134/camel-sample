@@ -32,6 +32,7 @@ Resources:
       QueueName: !Sub "${SqsQueueName}-${Environment}"
       VisibilityTimeout: 60
       MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
         maxReceiveCount: 3
@@ -41,6 +42,7 @@ Resources:
     Properties:
       QueueName: !Sub "${SqsQueueName}-dlq-${Environment}"
       MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
 
   EventMessagesTable:
     Type: AWS::DynamoDB::Table
@@ -133,6 +135,16 @@ Resources:
                 Resource:
                   - !GetAtt EventMessagesTable.Arn
                   - !Sub "${EventMessagesTable.Arn}/index/*"
+        - PolicyName: KmsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                Resource: "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/alias/aws/dynamodb"
         - PolicyName: EventBridgeAccess
           PolicyDocument:
             Version: '2012-10-17'

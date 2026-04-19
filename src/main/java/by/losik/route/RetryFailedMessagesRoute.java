@@ -52,7 +52,7 @@ public class RetryFailedMessagesRoute extends RouteBuilder {
                                         .map(Exception::getMessage)
                                         .orElse("Unknown error"))
                 )
-                .to("micrometer:timer:sqs.processing?action=stop");
+                .to("micrometer:timer:sqs.receive?action=stop");
     }
 
     private void retryFailedMessages() {

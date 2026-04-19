@@ -15,6 +15,7 @@ public class AppConfig {
     private final int waitTimeSeconds;
     private final int maxRetryAttempts;
     private final int timeSpan;
+    private final int dlqTimeSpan;
     private final int retryQueryLimit;
     private final int currentConsumers;
     private final int maxMessagePerPoll;
@@ -35,6 +36,7 @@ public class AppConfig {
             @ConfigProperty(name = "aws.sqs.poll.s", defaultValue = "10") int waitTimeSeconds,
             @ConfigProperty(name = "retry.max-attempts", defaultValue = "3") int maxRetryAttempts,
             @ConfigProperty(name = "dynamodb.table.query.span.s", defaultValue = "3600") int timeSpan,
+            @ConfigProperty(name = "dynamodb.table.query.dlq.span.s", defaultValue = "604800") int dlqTimeSpan,
             @ConfigProperty(name = "dynamodb.table.query.limit", defaultValue = "100") int retryQueryLimit,
             @ConfigProperty(name = "aws.sqs.consumer.amount", defaultValue = "5") int currentConsumers,
             @ConfigProperty(name = "aws.sqs.consumer.max-message-per-poll", defaultValue = "5") int maxMessagePerPoll,
@@ -51,6 +53,7 @@ public class AppConfig {
         this.waitTimeSeconds = waitTimeSeconds;
         this.maxRetryAttempts = maxRetryAttempts;
         this.timeSpan = timeSpan;
+        this.dlqTimeSpan = dlqTimeSpan;
         this.retryQueryLimit = retryQueryLimit;
         this.currentConsumers = currentConsumers;
         this.maxMessagePerPoll = maxMessagePerPoll;
